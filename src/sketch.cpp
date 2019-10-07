@@ -4,6 +4,7 @@
 // vim: ts=4 ai
 // based on info got from here:
 // http://lcdproc.cvs.sourceforge.net/viewvc/lcdproc/lcdproc/server/drivers/hd44780-serial.h?content-type=text%2Fplain
+// https://github.com/lcdproc/lcdproc/blob/master/server/drivers/hd44780-serial.c
 
 #define LED_PIN 10		// This is the pin the backlight is controlled by, it must be a PWM pin
 #define STARTUP_BRIGHTNESS 128	// What backlight brightness to start up with (50% by default).
