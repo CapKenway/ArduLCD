@@ -60,202 +60,57 @@ void loop() {
 	char data[5]; //data buffer for (un)signed int printing
 
 	while (Serial.available() > 0) {
+		// Serial.read() is blocking, so we will wait until the serial buffer interrupt triggers
 		cmd = Serial.read();
+
+		/*
+		so, serialVFD seems to be quite simple. There is an instruction escape character (0x1B)
+		which tells us the next byte is an instruction byte. The other bytes are just passed through.
+		
+		We would need to capture a specific VFD instruction byte (0x4C + 00H to C0H) for setting VFD brightness, and
+		pass it to our LCD backlight control.
+
+		The other commands should be possible to just pass through to the LCD.
+		*/
+		
+
 		switch(cmd) {
-			case 0x00:
-                while (1) {
+			// We got the escape command
+			case 0x1B:
+				while(1) {
 					cmd = Serial.read();
-					if (cmd != -1) { break; }
-                }   
-                lcd.write(cmd);
-				break;
-			case 0x1:
-				// set cursor position, next byte is pos
-	            while (Serial.available() == 0) {
-	                delay(1);
-	            }
-	            cmd = Serial.read();
-				lcd.command(LCD_SETDDRAMADDR | cmd);
-				cursor = cmd;
-				break;
-			case 0x2:
-				//Home the cursor (set to position 0)
-				lcd.home();
-				cursor = 0;
-				break;
-			case 0x3:
-				// shift cursor right
-				lcd.command(LCD_MOVERIGHT);
-				cursor++;
-				break;
-			case 0x4:
-				// shift cursor left
-				lcd.command(LCD_MOVELEFT);
-				cursor--;
-				break;
-			case 0x5:
-				// save cursor position
-				scursor = cursor;
-				break;
-			case 0x6:
-				// restore cursor position
-				cursor = scursor;
-				break;
-			case 0x7:
-				// Rings bell (fires 1000Hz tone through pin).
-				// This is not implemented in our version
-				break;
-			case 0x8:
-				// destructive backspace
-				lcd.command(LCD_MOVELEFT);
-				lcd.write(' ');
-				lcd.command(LCD_MOVELEFT);
-				break;
-			case 0x9:
-				// tab command -> 4 spaces to the right
-				lcd.write('    ');
-				cursor += 4;
-				break;
-			case 0xA:
-				// Line feed: The cursor is moved to the same position on the 
-				// next line. This is usually used in conjunction with control
-				// code $0D to implement a "new line" function. 
-
-				// the lcd wraps, so if we add LCDW to current position, we will
-				// be on the same spot on next line (but next write goes to +1, so
-				// we do -1 to move back one stop).
-				cursor += (LCDW - 1)  ; 
-				lcd.command(LCD_SETDDRAMADDR | cursor);
-				break;
-			case 0xB:
-				// Vertical Tab.
-				/* 	The display is scrolled up one line and the bottom line is cleared.
-					The cursor remains in the same location. */
-				cursor -= LCDW;
-				lcd.command(LCD_SETDDRAMADDR | cursor);
-				for ( x = 0; x != LCDW; x++) 
-					lcd.write(' '); //clear the line up to orig cursor
-					cursor++;
-				break;
-			case 0xC:
-				/*  Form Feed.
-
-				The display is cleared and the cursor is moved to the upper left of the display.*/
-				lcd.clear();
-				cursor = 0;
-				break;
-			case 0xD:
-				// Carriage return, cursor is moved to beginning of current line
-				while ( cursor % LCDW != 0) {
-					lcd.command(LCD_MOVELEFT);
-					cursor--;
+					// Get the instruction command
+					if (cmd != -1)
+						break;
+					/*
+					Check if the instruction command is to set the backlight. Based on
+					the docs it can be one of: 0x4C(25%), 0x8C(50%), 0xCC (75%), 0x10C(100%).
+					The last one seems suspect, as it needs an extra byte, but we shall see).
+					*/
+					switch(cmd) {
+						case 0x4C:
+							//set brightness to 25%
+							set_backlight(64);
+							break;
+						case 0x8C:
+							//set brightness to 50%
+							set_backlight(128);
+							break;
+						case 0xCC:
+							//set brightness to 75%
+							set_backlight(192);
+							break;
+						case 0x10C:
+							//set brightness to 100%
+							set_backlight(255);
+							break;
+						default:
+							//other instructions we forward to the LCD
+							lcd.write(cmd);
+							break;
 					}
-				break;
-			case 0xE:
-				// Shift display to the left
-				lcd.scrollDisplayLeft();
-				break;
-			case 0xF:
-				// Shift display to the right
-				lcd.scrollDisplayRight();
-				break;
-			case 0x11:
-				// Write LCD instruction -- used by lcdproc driver
-                while (Serial.available() == 0) {
-                    delay(1);
-                }   
-                cmd = Serial.read();
-                lcd.command(cmd);
-				break;
-			case 0x12:
-				// Write LCD Data -- used by lcdproc driver
-                while (Serial.available() == 0) {
-                    delay(1);
-                }   
-                cmd = Serial.read();
-                lcd.write(cmd);
-				cursor++;
-				break;
-			case 0x13:
-				// Set LCD geometry. Code structure here, but does nothing
-				// as I am unsure if this is needed
-				while (Serial.available() == 0) {
-                    delay(1);
-                }   
-                cmd = Serial.read();
-				switch (cmd) {
-					case 0:
-						//no formatting
-						break;
-					case 1:
-						//format for a one line display
-						break;
-					case 2:
-						//format for a two line display
-						break;
-					case 4:
-						//format for a four line display (default)
-						break;
 				}
-			case 0x15:
-				/* This was originally to set GPIOs. In our case
-				 * we are using it to set the value of the backlight
-				 * In both cases, you would send an 8-bit command, followed
-				 * by 8-bit data. Just that before the 8-bit data was to control
-				 * 8 1-bit channels, where here we take it as a 8-bit PWM value
-				 */
-				cmd = Serial.read();
-				set_backlight(cmd);
 				break;
-			case 0x16:
-				// print signed decimal number
-				while (Serial.available() == 0) {
-                    delay(1);
-                }   
-                cmd = Serial.read();
-				sprintf(data,"%4d",cmd);
-				lcd.print( data );
-				cursor += 4;
-				break;
-			case 0x17:
-				// print unsigned decimal number
-				while (Serial.available() == 0) {
-                    delay(1);
-                }   
-                cmd = Serial.read();
-				sprintf(data,"%4u",cmd);
-				lcd.print(data);
-				cursor += 4;
-				break;
-			case 0x18:
-				// Set cursor type
-				while (Serial.available() == 0) {
-                    delay(1);
-                }   
-                cmd = Serial.read();
-				switch (cmd) {
-					case 0:
-						lcd.noCursor(); //no cursor
-						lcd.noBlink(); //no blink
-					case 1:
-						lcd.blink(); //blinking cursor (block?)
-					case 3:
-						lcd.cursor(); //just underline
-						lcd.noBlink();
-					case 4:
-						lcd.cursor(); //underline and blink
-						lcd.blink();
-					default:
-						lcd.noCursor();
-					}
-				break;
-			default:
-				// By default we write to the LCD
-				lcd.write(cmd);
-				cursor++;
-				break;
-
-
-
-		}}}
-
+		}
+	}
+}
