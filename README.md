@@ -3,31 +3,36 @@ Arduino based interface for HD44780 LCD to lcdproc and equivalent.
 
 # Beginnings
 
-As time goes on, it is harder and harder to connected HD44780 LCDs to computer systems. It used to be that every computer had a parallel port, and you just wired it up there.  However fewer and fewer machines have parallel ports, and in some cases the software won't work (e.g. lcdproc on FreeBSD locks up if you try to use the parallel port). 
+As time goes on, it is harder and harder to connect HD44780 LCDs to computer systems. It used to be that every computer had a parallel port, and you just wired it up there.  However fewer and fewer machines have parallel ports, and in some cases the software won't work (e.g. In my experience, lcdproc on FreeBSD locks up if you try to use the parallel port).
 
-So having bought an arduino, and realising how cheap and powerful it was, I thought it would be a good fit for a LCD to USB interface. It is also a relatively simple first project. 
+So having bought an arduino, and realising how cheap and powerful it was, I thought it would be a good fit for a LCD to USB interface. It is also a relatively simple first project to get into Arduino programming.
 
 # Design
 
-I decided to emulate the old "pic-an-lcd" interface. This was a (proprietery) serial to HD44780 interface that was used in the late 90's. I knew of it back then, but never bothered due to the abundance of parallel ports.  I decided to emulate this because:
+The original design worked on emulating the old "pic-an-lcd" interface. This was a (proprietery) serial to HD44780 interface that was used in the late 90's. I knew of it back then, but never bothered due to the abundance of parallel ports. Being the only existing protocol I knew of, and being relatively simple, I made use of that for version 1 of ArduLCD. However as of 2019, the pic-an-lcd interface is actually being removed from software (e.g. lcd4linux no longer supports it), and generally its on its way out. Therefore I had to find a new serial protocol to emulate.
 
-1. It is old enough that it is supported by most LCD software. In particular the software I tend to use (LCDproc)
-2. It is serial based, so I can make use of the existing USB->Serial interface provided by the arduino.
-3. It is relatively easy to interface to directly (i.e. by writing to the Serial port from your own program), so you need not use "LCD software" at all.
+After some research, I discovered that a lot of VFDs have serial communication. On lcdproc this is known as the "serialVFD" interface. This is a more modern interface, it exists in silicon (meaning it isn't going to change anytime soon), and VFDs are still used in industry and amateur electronics projects, so as a protocol, it is still actively supported (and probably will be for a while).
 
-Because the Arduino is stupidly overpowered for such a simple task, I worked on making it fast. The HD44780 makes use of 8 bit transfers, and serial speed is at 57600 baud.
+There are more reasons to use the interface, such as:
 
-This code is nowhere near good, it is more like a hack than a proper development, but posted here in case someone else is interested in such a thing, and saves them the time to reverse engineer the protocol. The original "pic-an-lcd" page seems to have dropped off the internet (http://www.cyberramp.net/~dale) , so had to work out what it is doing from the LCDproc docs and other sources.
+1. It is pretty much generic now. There is an abundance of VFD devices that make use of it.
+2. It supports intensity control on the VFD (which we will use for backlight intensity control)
+3. It is pretty much supported by all lcd software.
+4. It seems essentially to just be a serialisation around the standard HD44780 command set, with a bit of garnish.
 
+Therefore, for version 2, we decided to emulate the "serialVFD" interface. As the Arduino is stupidly overpowered for such a simple task, I worked on making it fast. The HD44780 makes use of 8 bit transfers, and serial speed is at 57600 baud.
 
-# Current status
+# Wiring Diagram
+
+You can find this in the "resources" folder, with the name "wiring_schematic". You have both a png for general use/printing, and the original .sch file. It was done with gschem (http://www.geda-project.org/), and feel free to make improvements. The diagram includes a transistor, capacitor and wiring between the backlight and pin 10 for dynamic backlight brightness control. This is optional, and can be omitted if you are not interested in that capability.
+
+-- 19/07/2019
+
+Decided to make a new version. This one uses serialVFD protocol for communication. The old "pic-an-lcd" interface is no longer used.
 
 -- 23/04/2019
 
 After an issue raised about lack of wiring diagram, I decided to whip one up and provide it here. You can find it in the "resources" folder. It was done with gschem (http://www.geda-project.org/), and feel free to make improvements. The diagram includes a transistor, capacitor and wiring between the backlight and pin 10 for dynamic backlight brightness control. This is optional, and can be omitted if you are not interested in that capability.
-
-If you do build in the PWM control circuitry, then you can utilise the old "GPIO" command in pic-an-lcd. This will allow you to vary the brightness of the backlight from 0 (off) to 255 (100%) via a serial command. Otherwise you can fix the brightness of your backlight at compile time by changing the "STARTUP_BRIGHTNESS" define in the code.
-
 
 -- 02/05/2016
 
