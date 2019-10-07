@@ -11,8 +11,8 @@
 
 # define BAUDRATE 57600  // What baudrate to use for the serial port
 
-// There was a reason I did not use these as defines, but I can't
-// remember it :-/
+// Apprently you should not use Defines in C++. Even though I try to keep my code as much
+// "C" as possible, the Arduino libraries are C++
 const int LCDW = 20;
 const int LCDH = 4;
 
