@@ -22,6 +22,9 @@ There are more reasons to use the interface, such as:
 
 Therefore, for version 2, we decided to emulate the "serialVFD" interface. As the Arduino is stupidly overpowered for such a simple task, I worked on making it fast. The HD44780 makes use of 8 bit transfers, and serial speed is at 57600 baud.
 
+# Future ideas
+	 - One future idea is to allow multiple LCD displays to be driven by ArduLCD. Due to the power of the Arduino even at 57600 baud it still spends a lot of time idle. As the serialVFD protocol does not support addressing, we would probably need to merge all the LCDs into one large "virtual LCD".
+
 # Wiring Diagram
 
 You can find this in the "resources" folder, with the name "wiring_schematic". You have both a png for general use/printing, and the original .sch file. It was done with gschem (http://www.geda-project.org/), and feel free to make improvements. The diagram includes a transistor, capacitor and wiring between the backlight and pin 10 for dynamic backlight brightness control. This is optional, and can be omitted if you are not interested in that capability.
